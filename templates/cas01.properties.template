@@ -1,12 +1,12 @@
 # CAS Application Project setting
 #cas.server.name=https://cas.example.org:8443
-cas.server.name=http://cas01.sandbox-intra.com:8080
+cas.server.name=http://cas01.example-intra.com:8080
 cas.server.prefix=${cas.server.name}/cas
 
 # LOG4J file location
 logging.config: file:/etc/cas/config/log4j2.xml
 
-# NGINX Load balance and Proxy settings for bluegate01.sandbox-intra.com
+# NGINX Load balance and Proxy settings for bluegate01.example-intra.com
 server.ssl.enabled=false
 cas.server.http.enabled=false
 cas.server.httpProxy.enabled=true
@@ -61,11 +61,11 @@ cas.authn.pm.ldap[0].enabled=true
 cas.authn.ldap[0].enabled=true
 cas.authn.ldap[0].name=FreeIPA LDAP
 cas.authn.ldap[0].type=AUTHENTICATED
-cas.authn.ldap[0].ldapUrl=ldap://nsldap01.sandbox-intra.com,ldap://nsldap02.sandbox-intra.com
+cas.authn.ldap[0].ldapUrl=ldap://nsldap01.example-intra.com,ldap://nsldap02.example-intra.com
 cas.authn.ldap[0].useSsl=false
 cas.authn.ldap[0].useStartTls=false
-cas.authn.ldap[0].baseDn=cn=users,cn=accounts,dc=sandbox-intra,dc=com
-cas.authn.ldap[0].bindDn=uid=admin,cn=users,cn=accounts,dc=sandbox-intra,dc=com
+cas.authn.ldap[0].baseDn=cn=users,cn=accounts,dc=example-intra,dc=com
+cas.authn.ldap[0].bindDn=uid=admin,cn=users,cn=accounts,dc=example-intra,dc=com
 cas.authn.ldap[0].bindCredential=password1234
 
 # LDAP ATTRIBUTES - Directly and separately retrieve attributes from an LDAP source
@@ -78,7 +78,7 @@ cas.authn.attributeRepository.ldap[0].attributes.role=memberOf
 cas.authn.attributeRepository.ldap[0].attributes.mail=mail
 
 cas.authn.ldap[0].searchEntryHandlers.primaryGroupId.groupFilter=(&(objectClass=posixgroup)(objectSid={0}))
-cas.authn.ldap[0].searchEntryHandlers.primaryGroupId.baseDn=cn=groups,cn=accounts,dc=sandbox-intra,dc=com
+cas.authn.ldap[0].searchEntryHandlers.primaryGroupId.baseDn=cn=groups,cn=accounts,dc=example-intra,dc=com
 
 # LDAP Pool Size
 cas.authn.ldap[0].minPoolSize=3
@@ -91,9 +91,9 @@ cas.authn.ldap[0].searchFilter=(&(objectClass=person)(uid={user}))
 cas.authn.ldap[0].principalAttribute=uid,groups,memberOf
 cas.authn.ldap[0].principalAttributeId=uid
 cas.authn.ldap[0].principalAttributeList=uid,givenname,sn,telephonenumber,ou,title,cn:commonName,description,mail,memberOf
-cas.authn.ldap[0].dnFormat=uid=%s,cn=users,cn=accounts,dc=sandbox-intra,dc=com
+cas.authn.ldap[0].dnFormat=uid=%s,cn=users,cn=accounts,dc=example-intra,dc=com
 #cas.authn.ldap[0].group.searchFilter=
-cas.authn.ldap[0].group.baseDn=cn=groups,cn=accounts,dc=sandbox-intra,dc=com
+cas.authn.ldap[0].group.baseDn=cn=groups,cn=accounts,dc=example-intra,dc=com
 cas.authn.ldap[0].group.roleAttr=cn
 cas.authn.ldap[0].binaryAttributes=gidNumber,uidNumber
 
