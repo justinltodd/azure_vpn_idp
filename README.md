@@ -1,4 +1,4 @@
-## Terraform Dynamic Environment DX SANDBOX 
+## Terraform CAS IDP, OpenVPN, FreeIPA, Authentication 
 #
 
 
