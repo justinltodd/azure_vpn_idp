@@ -1,0 +1,31 @@
+{
+  "@class" : "org.apereo.cas.services.RegexRegisteredService",
+  "serviceId" : "^https://.*",
+  "name" : "Example JWT Auth  Sandbox Tool",
+  "id" : 10,
+  "attributeReleasePolicy" : {
+    "@class" : "org.apereo.cas.services.ReturnAllowedAttributeReleasePolicy",
+    "allowedAttributes" : [ "java.util.ArrayList", [ "uid", "memberOf", "mail" ] ]
+   },
+  "accessStrategy" : {
+    "@class" : "org.apereo.cas.services.DefaultRegisteredServiceAccessStrategy",
+    "unauthorizedRedirectUrl" : "http://cas01.example-intra.com:8080/cas/login?service=http://example.org",
+    "enabled" : true,
+    "ssoEnabled" : true,
+    "requiredAttributes" : {
+      "@class" : "java.util.HashMap",
+      "memberOf" : [ "java.util.HashSet", [ "vpnusers" ] ]
+    }
+  },
+  "properties" : {
+    "@class" : "java.util.HashMap",
+    "jwtAsServiceTicket" : {
+      "@class" : "org.apereo.cas.services.DefaultRegisteredServiceProperty",
+      "values" : [ "java.util.HashSet", [ "true" ] ]
+    },
+    "jwtAsServiceTicketSigningKey" : {
+      "@class" : "org.apereo.cas.services.DefaultRegisteredServiceProperty",
+      "values" : [ "java.util.HashSet", [ "N9duupe3VM5nFP8OpE7YN_9k0w8HWqTiyIal46kM3dbv2vEnCjv654mTJs3NdmHv82C95kDjcK92MB8oMeYOzw" ] ]
+    }
+  }
+}

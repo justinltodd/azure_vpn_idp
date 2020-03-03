@@ -1,0 +1,330 @@
+# Template for cas service ./templates/tomcat.service.template
+data "template_file" "tomcat_service_file" {
+  template = "${file("./templates/tomcat.service.template")}"
+}
+
+# Template for gradle.properties CAS build  ./templates/gradle.properties.template
+data "template_file" "gradle_properties_file" {
+  template = "${file("./templates/gradle.properties.template")}"
+}
+
+# Template for Registerng Applications Json Config ./templates/HTTPSandIMAPSwildcard-1503925297.json.template Not For Production
+data "template_file" "HTTPSandIMAPSWildcard_json_file" {
+  template = "${file("./templates/HTTPSandIMAPSwildcard-1503925297.json.template")}"
+}
+
+# Generate random text for a unique storage account name
+resource "random_id" "cas01_randomId" {
+  keepers = {
+    # Generate a new ID only when a new resource group is defined
+    resource_group = "${azurerm_resource_group.vpn_hub_vnet-rg.name}"
+  }
+
+  byte_length = 8
+}
+
+# Create storage account for boot diagnostics
+resource "azurerm_storage_account" "cas01_storage" {
+  name                     = "diag${random_id.cas01_randomId.hex}"
+  resource_group_name      = "${azurerm_resource_group.vpn_hub_vnet-rg.name}"
+  location                 = "${azurerm_resource_group.vpn_hub_vnet-rg.location}"
+  account_tier             = "Standard"
+  account_replication_type = "LRS"
+
+  tags = {
+    environment = "Server: CAS01 CAS v6.2.0 Server"
+  }
+}
+
+# Create virtual machine
+resource "azurerm_virtual_machine" "cas01" {
+  name                  = "cas01"
+  location              = "${azurerm_resource_group.vpn_hub_vnet-rg.location}"
+  resource_group_name   = "${azurerm_resource_group.vpn_hub_vnet-rg.name}"
+  network_interface_ids = ["${azurerm_network_interface.cas01_nic.id}"]
+  vm_size               = "Standard_D2s_v3"
+
+  # Uncomment this line to delete the OS disk automatically when deleting the VM
+  delete_os_disk_on_termination = true
+
+  # Uncomment this line to delete the data disks automatically when deleting the VM
+  delete_data_disks_on_termination = true
+
+  storage_os_disk {
+    name              = "cas01_os"
+    caching           = "ReadWrite"
+    create_option     = "FromImage"
+    managed_disk_type = "Premium_LRS"
+  }
+
+  storage_image_reference {
+    publisher = "Canonical"
+    offer     = "UbuntuServer"
+    sku       = "18.04-LTS"
+    version   = "latest"
+  }
+
+  os_profile {
+    computer_name  = "cas01"
+    admin_username = "dxadmin"
+    admin_password = "Password1234"
+  }
+
+  os_profile_linux_config {
+    disable_password_authentication = true
+
+    ssh_keys {
+      path     = "/home/dxadmin/.ssh/authorized_keys"
+      key_data = "${file(var.ssh_public_key_file)}"
+    }
+  }
+
+  boot_diagnostics {
+    enabled     = "true"
+    storage_uri = "${azurerm_storage_account.cas01_storage.primary_blob_endpoint}"
+  }
+
+  tags = {
+    environment = "Server: CAS01 CAS v6.2.0 Server"
+  }
+
+  # Allow root ssh access with key
+  provisioner "remote-exec" {
+    inline = [
+      "sleep 5",
+      "sudo cp /root/.ssh/authorized_keys /root/.ssh/authorized_keys.$$",
+      "sudo cp ~/.ssh/authorized_keys /root/.ssh/authorized_keys",
+    ]
+
+    connection {
+      host        = "${azurerm_public_ip.CAS01PublicEth01.ip_address}"
+      type        = "ssh"
+      user        = "dxadmin"
+      private_key = "${file("${var.ssh_private_key_file}")}"
+      timeout     = "5m"
+    }
+  }
+
+  # Render the tomcat.service  template file
+  provisioner "file" {
+    content     = "${data.template_file.tomcat_service_file.rendered}"
+    destination = "/etc/systemd/system/tomcat.service"
+
+    connection {
+      host        = "${azurerm_public_ip.CAS01PublicEth01.ip_address}"
+      type        = "ssh"
+      user        = "root"
+      private_key = "${file("${var.ssh_private_key_file}")}"
+      timeout     = "5m"
+    }
+  }
+
+  # Install required packages 
+  provisioner "remote-exec" {
+    inline = [
+      "sleep 15",
+      "sudo apt-get update",
+      "sudo apt-get -y upgrade",
+      "sudo apt-get -y autoremove",
+      "sudo apt-get -y install curl wget",
+      "sudo add-apt-repository universe",
+      "sudo add-apt-repository -y ppa:certbot/certbot",
+      "sudo apt-get -y install gcc software-properties-common",
+      "sudo apt-get -y install make",
+      "sudo apt-get -y install ca-certificates",
+      "sudo apt-get -y install openssl",
+      "sudo apt-get -y install certbot",
+      "sudo apt-get -y update",
+      "sudo apt-get -y install php-common php-gd php-curl",
+      "sudo apt-get -y install openjdk-8-jre openjdk-8-jdk libtcnative-1 maven",
+      "sudo apt-get -y autoremove",
+      "sudo mkdir /opt/tomcat/",
+      "cd /opt/tomcat/",
+      "sudo wget http://apache.mirrors.tds.net/tomcat/tomcat-9/v9.0.30/bin/apache-tomcat-9.0.30.tar.gz",
+      "sudo tar -xzvf apache-tomcat-9.0.30.tar.gz",
+      "sudo ln -s /opt/tomcat/apache-tomcat-9.0.30/ /opt/tomcat/latest",
+      "sudo rm -rf /opt/tomcat/apache-tomcat-9.0.30.tar.gz ",
+      "sudo useradd -r -m -U -d /opt/tomcat -s /bin/false tomcat",
+      "sudo chown -RH tomcat: /opt/tomcat/latest",
+      "sudo sh -c 'chmod +x /opt/tomcat/latest/bin/*.sh' ",
+      "sudo systemctl daemon-reload",
+      "sudo systemctl enable tomcat",
+      "sudo mkdir /var/log/cas-server",
+      "sudo touch /var/log/cas-server/cas_audit.log",
+      "sudo touch /var/log/cas-server/cas.log",
+      "sudo chown -R tomcat.tomcat /var/log/cas-server/",
+      "cd /tmp/",
+      "sudo wget http://archive.ubuntu.com/ubuntu/pool/universe/t/tomcat-native/libtcnative-1_1.2.23-1_amd64.deb", #tomcat libcnative update from v1.2.21 to v1.2.23,
+      "sudo dpkg -i libtcnative-1_1.2.23-1_amd64.deb",
+    ]
+
+    connection {
+      host        = "${azurerm_public_ip.CAS01PublicEth01.ip_address}"
+      type        = "ssh"
+      user        = "root"
+      private_key = "${file("${var.ssh_private_key_file}")}"
+      timeout     = "5m"
+    }
+  }
+
+  # Provision  - jar and pom file for getop v1.0.13 for RADIUS auth dependency for CAS
+  provisioner "file" {
+    source      = "./scripts/getop1.0.13.tgz"
+    destination = "/tmp/getop1.0.13.tgz"
+
+    connection {
+      host        = "${azurerm_public_ip.CAS01PublicEth01.ip_address}"
+      type        = "ssh"
+      user        = "root"
+      private_key = "${file("${var.ssh_private_key_file}")}"
+      timeout     = "5m"
+    }
+  }
+
+  # Provision  -  log4j2 template file for CAS v6.2 server
+  provisioner "file" {
+    source      = "./templates/log4j2.xml.template"
+    destination = "/tmp/log4j2.xml"
+
+    connection {
+      host        = "${azurerm_public_ip.CAS01PublicEth01.ip_address}"
+      type        = "ssh"
+      user        = "root"
+      private_key = "${file("${var.ssh_private_key_file}")}"
+      timeout     = "5m"
+    }
+  }
+
+  # Render the gradle.properties template file
+  provisioner "file" {
+    content     = "${data.template_file.gradle_properties_file.rendered}"
+    destination = "/tmp/gradle.properties"
+
+    connection {
+      host        = "${azurerm_public_ip.CAS01PublicEth01.ip_address}"
+      type        = "ssh"
+      user        = "root"
+      private_key = "${file("${var.ssh_private_key_file}")}"
+      timeout     = "5m"
+    }
+  }
+
+  # Render the cas.properties template file
+  provisioner "file" {
+    source      = "./templates/cas.properties.template"
+    destination = "/tmp/cas.properties"
+
+    connection {
+      host        = "${azurerm_public_ip.CAS01PublicEth01.ip_address}"
+      type        = "ssh"
+      user        = "root"
+      private_key = "${file("${var.ssh_private_key_file}")}"
+      timeout     = "5m"
+    }
+  }
+
+  # Render the build.gradle properties template file
+  provisioner "file" {
+    source      = "./templates/build.gradle.template"
+    destination = "/tmp/build.gradle"
+
+    connection {
+      host        = "${azurerm_public_ip.CAS01PublicEth01.ip_address}"
+      type        = "ssh"
+      user        = "root"
+      private_key = "${file("${var.ssh_private_key_file}")}"
+      timeout     = "5m"
+    }
+  }
+
+  # Render the json app registrering template file
+  provisioner "file" {
+    content     = "${data.template_file.HTTPSandIMAPSWildcard_json_file.rendered}"
+    destination = "/tmp/HTTPSandIMAPSwildcard-1503925297.json"
+
+    connection {
+      host        = "${azurerm_public_ip.CAS01PublicEth01.ip_address}"
+      type        = "ssh"
+      user        = "root"
+      private_key = "${file("${var.ssh_private_key_file}")}"
+      timeout     = "5m"
+    }
+  }
+
+  # Setup workspace for CAS configuration
+  provisioner "remote-exec" {
+    inline = [
+      "sleep 10",
+      "sudo mkdir -p /root/.m2/repository/gnu-getopt/getopt/",                ##<-- Dir for radius auth dependencies build for CAS
+      "sudo cp /tmp/getop1.0.13.tgz /root/.m2/repository/gnu-getopt/getopt/", ##<-- Dir for radius auth dependencies build for CAS
+      "cd /root/.m2/repository/gnu-getopt/getopt/",                           ##<-- Dir for radius auth dependencies build for CAS
+      "sudo tar -zxvf getop1.0.13.tgz",                                       ##<-- Dir for radius auth dependencies build for CAS
+      "sudo mkdir /opt/workspace",
+      "cd /opt/workspace",
+      "sudo git clone https://github.com/apereo/cas-overlay-template.git",
+      "cd /opt/workspace/cas-overlay-template",
+      "sudo mv /opt/workspace/cas-overlay-template/gradle.properties /opt/workspace/cas-overlay-template/gradle.properties.original.$$",
+      "sudo mv /opt/workspace/cas-overlay-template/build.gradle /opt/workspace/cas-overlay-template/build.gradle.original.$$",
+      "sudo cp /tmp/build.gradle /opt/workspace/cas-overlay-template/",
+      "sudo cp /tmp/gradle.properties /opt/workspace/cas-overlay-template/",
+      "sudo ./gradlew clean copyCasConfiguration",
+      "sudo mkdir /etc/cas/services/",
+      "sudo mv /etc/cas/config/log4j2.xml /etc/cas/config/log4j2.xml.original.$$",
+      "sudo mv /etc/cas/config/cas.properties /etc/cas/config/cas.properties.original.$$",
+      "sudo cp /tmp/log4j2.xml /etc/cas/config/",
+      "sudo cp /tmp/cas.properties /etc/cas/config/",
+      "sudo cp /tmp/HTTPSandIMAPSwildcard-1503925297.json /etc/cas/services/",
+      "sudo systemctl start tomcat.service",
+      "sleep 5", # Pause to let tomcat do a full restart
+      "sudo ./gradlew clean allDependencies",
+      "sudo ./gradlew build",
+      "sudo systemctl stop tomcat.service",
+      "sudo systemctl start tomcat.service",
+      "sleep 5", # Pause to let tomcat stop fully before deplying CAS.war file
+      "sudo ln -s /opt/workspace/cas-overlay-template/build/libs/cas.war /opt/tomcat/latest/webapps/cas.war",
+      # "apt-get -s dist-upgrade | grep '^Inst' | grep -i securi | awk -F " " {'print $2'} | xargs apt-get install", # < -- Security Updates
+    ]
+
+    connection {
+      host        = "${azurerm_public_ip.CAS01PublicEth01.ip_address}"
+      type        = "ssh"
+      user        = "root"
+      private_key = "${file("${var.ssh_private_key_file}")}"
+      timeout     = "5m"
+    }
+  }
+}
+
+# CAS01 CAS01PublicEth0 Public interface
+resource "azurerm_public_ip" "CAS01PublicEth01" {
+  name                = "cas01-public"
+  resource_group_name = "${azurerm_resource_group.vpn_hub_vnet-rg.name}"
+  location            = "${azurerm_resource_group.vpn_hub_vnet-rg.location}"
+  allocation_method   = "Static"
+  domain_name_label   = "cas01" #//adds dns using hostname.centralus.cloudapp.azure.com
+
+  tags = {
+    environment = "Server: CAS01 CAS v6.2.0 Server"
+  }
+}
+
+# CAS01 Server Network Interface
+resource "azurerm_network_interface" "cas01_nic" {
+  name                      = "cas01-eth0"
+  location                  = "${azurerm_resource_group.vpn_hub_vnet-rg.location}"
+  resource_group_name       = "${azurerm_resource_group.vpn_hub_vnet-rg.name}"
+  network_security_group_id = "${azurerm_network_security_group.cas01-sg.id}"
+  enable_ip_forwarding      = true
+
+
+  ip_configuration {
+    name                          = "cas01"
+    subnet_id                     = "${azurerm_subnet.vpn_hub_mgmt_subnet.id}"
+    private_ip_address_allocation = "Dynamic"
+    public_ip_address_id          = "${azurerm_public_ip.CAS01PublicEth01.id}"
+  }
+
+  tags = {
+    environment = "Server: CAS01 CAS v6.2.0 Server"
+  }
+}

@@ -1,0 +1,5 @@
+auth       [user_unknown=ignore success=ok ignore=ignore default=bad] pam_securetty.so
+auth       required     pam_succeed_if.so user ingroup ${GROUP}  #<-- LDAP Group
+auth       include      system-auth
+account    include      system-auth
+password   include      system-auth

@@ -1,0 +1,34 @@
+# OpenVPN 2.4.8 client.conf Template File
+# OpenSSL 1.1.1  11 Sep 2018, LZO 2.08
+client
+dev tun
+proto ${VPN_PROTOCOL}4
+
+# Host name and port for the server (default port is 1194)
+# note: replace with the correct values your server set up
+remote ${VPN_HOST}.${LOCATION}.cloudapp.azure.com ${VPN_PORT}
+
+resolv-retry infinite
+nobind
+persist-key
+persist-tun
+
+# Use compression - lzo, lz4 or blank
+${VPN_COMPRESSION}
+
+# https://openvpn.net/index.php/open-source/documentation/howto.html#mitm
+remote-cert-tls server
+
+# Specify same cipher same as vpnserver
+cipher AES-256-CBC
+tls-version-min 1.2
+# From Applied Crypto Hardening
+tls-cipher TLS-ECDHE-RSA-WITH-AES-256-GCM-SHA384
+auth SHA512
+
+# Since we specified the tls-auth for server, we need it for the client
+# note: 0 = server, 1 = client
+key-direction 1
+
+# Verbosity Level
+verb 3

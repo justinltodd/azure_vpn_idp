@@ -1,0 +1,105 @@
+# CAS Application Project setting
+#cas.server.name=https://cas.example.org:8443
+cas.server.name=http://cas01.sandbox-intra.com:8080
+cas.server.prefix=${cas.server.name}/cas
+
+# LOG4J file location
+logging.config: file:/etc/cas/config/log4j2.xml
+
+# NGINX Load balance and Proxy settings for bluegate01.sandbox-intra.com
+server.ssl.enabled=false
+cas.server.http.enabled=false
+cas.server.httpProxy.enabled=true
+cas.server.httpProxy.secure=true
+cas.server.httpProxy.scheme=https
+cas.server.httpProxy.protocol=HTTP/1.1
+
+# Uncomment to take out of DEMO mode - restart service
+cas.authn.accept.users=
+
+# Registery Service - service registry
+cas.serviceRegistry.initFromJson=false
+cas.serviceRegistry.json.location=file:/etc/cas/services
+
+# Cookie Signing - Ticket Granting Cookie Encryption & Spring Webflow encryption
+cas.tgc.secure=true
+cas.tgc.crypto.encryption.key=vVQxsKxVGYvS1cl788yaflnegerQe0MCZkm5nqkOFxY
+cas.tgc.crypto.signing.key=0k8S-dWhIuKUqdI6gbX71lx6cb2kFn3fe0yk8ozE5yyG-gfIcNZ8duvxACdZhEwpoMr-RmSmRmS_CdIWka45Jw
+
+## DKH
+## Pretty sure these "webflow" keys conflict with the JWT keys set below. Commented these out to make JWT signing work
+cas.webflow.crypto.signing.key=8aqsutQDDSZGCoupCeMQrFAX5Q1lQwqL2-SQQDU5VOcDA2ey3wqS1ghZDX884Wg7ySPaO5J0ekVhYV4R4ChdXw
+cas.webflow.crypto.encryption.key=tux7pYoPLmqW_6XCAMoTrQ
+
+# Enable signing of JWT
+cas.authn.token.crypto.signingEnabled=true
+cas.authn.token.crypto.signing.key=Cm1OIt6dGcq_Yf8FHjbKw3TRl4fMYc0OnqCP6Robj7wbxOaAgj4VP5nYBaXw-yh96nZ9yF6-viSE6jShx3mu1A
+
+# Encryption is enabled by defaulti (Encryption isn't enabled by default. States it in the log file. We don't need/want it for JWT service tickets.
+cas.authn.token.crypto.encryptionEnabled=false
+
+# Expose Public Key used for signing JWT tickets
+management.endpoints.web.exposure.include=jwtTicketSigningPublicKey
+management.endpoint.jwtTicketSigningPublicKey.enabled=true
+cas.monitor.endpoints.endpoint.jwtTicketSigningPublicKey.access=ANONYMOUS
+
+# --Password Management Policy--
+# [256] for [Password Reset Token]
+cas.authn.pm.reset.crypto.encryption.key=zon6oCa3vFnIsZ_HOLsCQlS8IOlFfbwI0TdW8QYBPXo
+
+# [512] for [Password Reset Token]
+cas.authn.pm.reset.crypto.signing.key=TZYXvdlENIdpoqywKmv_tUpIt71r4C9KriRx_mh2vzDyVeaLI4DYkWHaXiLwc7KWfiGzRoRli1ZMycr0z1DdDA
+
+# Enable Storage Service (LDAP, Database, etc)
+# ENABEL STORAGE FOR LDAP ACCOUNT MANAGEMENT
+
+# LDAP BIND INFO
+#cas.authn.ldap.type=FreeIPA
+cas.authn.pm.ldap[0].order=0
+cas.authn.pm.ldap[0].type=FreeIPA
+cas.authn.pm.ldap[0].enabled=true
+cas.authn.ldap[0].enabled=true
+cas.authn.ldap[0].name=FreeIPA LDAP
+cas.authn.ldap[0].type=AUTHENTICATED
+cas.authn.ldap[0].ldapUrl=ldap://nsldap01.sandbox-intra.com,ldap://nsldap02.sandbox-intra.com
+cas.authn.ldap[0].useSsl=false
+cas.authn.ldap[0].useStartTls=false
+cas.authn.ldap[0].baseDn=cn=users,cn=accounts,dc=sandbox-intra,dc=com
+cas.authn.ldap[0].bindDn=uid=admin,cn=users,cn=accounts,dc=sandbox-intra,dc=com
+cas.authn.ldap[0].bindCredential=password1234
+
+# LDAP ATTRIBUTES - Directly and separately retrieve attributes from an LDAP source
+#cas.authn.attributeRepository.ldap[0].id=
+cas.authn.attributeRepository.ldap[0].order=0
+cas.authn.attributeRepository.ldap[0].attributes.uid=uid
+cas.authn.attributeRepository.ldap[0].attributes.displayName=displayName
+cas.authn.attributeRepository.ldap[0].attributes.cn=commonName
+cas.authn.attributeRepository.ldap[0].attributes.role=memberOf
+cas.authn.attributeRepository.ldap[0].attributes.mail=mail
+
+cas.authn.ldap[0].searchEntryHandlers.primaryGroupId.groupFilter=(&(objectClass=posixgroup)(objectSid={0}))
+cas.authn.ldap[0].searchEntryHandlers.primaryGroupId.baseDn=cn=groups,cn=accounts,dc=sandbox-intra,dc=com
+
+# LDAP Pool Size
+cas.authn.ldap[0].minPoolSize=3
+cas.authn.ldap[0].maxPoolSize=10
+
+
+# LDAP USER SEARCH
+cas.authn.ldap[0].subtreeSearch=true
+cas.authn.ldap[0].searchFilter=(&(objectClass=person)(uid={user}))
+cas.authn.ldap[0].principalAttribute=uid,groups,memberOf
+cas.authn.ldap[0].principalAttributeId=uid
+cas.authn.ldap[0].principalAttributeList=uid,givenname,sn,telephonenumber,ou,title,cn:commonName,description,mail,memberOf
+cas.authn.ldap[0].dnFormat=uid=%s,cn=users,cn=accounts,dc=sandbox-intra,dc=com
+#cas.authn.ldap[0].group.searchFilter=
+cas.authn.ldap[0].group.baseDn=cn=groups,cn=accounts,dc=sandbox-intra,dc=com
+cas.authn.ldap[0].group.roleAttr=cn
+cas.authn.ldap[0].binaryAttributes=gidNumber,uidNumber
+
+# LDAP Service Registration - TBD
+#cas.serviceRegistry.ldap[0].serviceDefinitionAttribute=description
+#cas.serviceRegistry.ldap[0].idAttribute=uid
+#cas.serviceRegistry.ldap[0].objectClass=casRegisteredService
+#cas.serviceRegistry.ldap[0].searchFilter=(%s={0})
+#cas.serviceRegistry.ldap[0].loadFilter=(objectClass=%s)
