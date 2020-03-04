@@ -97,6 +97,62 @@ resource "azurerm_virtual_machine" "bluegate01" {
     }
   }
 
+  # Re-compile NGINX Script to add real_ip module
+  provisioner "file" {
+    source      = "./scripts/recompile_nginx.sh"
+    destination = "/tmp/recompile_nginx.sh"
+
+    connection {
+      host        = "${azurerm_public_ip.bluegate01Pubeth01.ip_address}"
+      type        = "ssh"
+      user        = "root"
+      private_key = "${file("${var.ssh_private_key_file}")}"
+      timeout     = "5m"
+    }
+  }
+
+  # NGINX Proxy / LB config file
+  provisioner "file" {
+    source      = "./templates/tomcat-basic.nginx.conf"
+    destination = "/tmp/tomcat-basic.nginx.conf"
+
+    connection {
+      host        = "${azurerm_public_ip.bluegate01Pubeth01.ip_address}"
+      type        = "ssh"
+      user        = "root"
+      private_key = "${file("${var.ssh_private_key_file}")}"
+      timeout     = "5m"
+    }
+  }
+
+  # NGINX SSL config file
+  provisioner "file" {
+    source      = "./templates/ssl.nginx.conf"
+    destination = "/tmp/ssl.nginx.conf"
+
+    connection {
+      host        = "${azurerm_public_ip.bluegate01Pubeth01.ip_address}"
+      type        = "ssh"
+      user        = "root"
+      private_key = "${file("${var.ssh_private_key_file}")}"
+      timeout     = "5m"
+    }
+  }
+
+  # NGINX SSL letenscrypt/certbot conf file
+  provisioner "file" {
+    source      = "./templates/letsencrypt.nginx.conf"
+    destination = "/tmp/letsencrypt.nginx.conf"
+
+    connection {
+      host        = "${azurerm_public_ip.bluegate01Pubeth01.ip_address}"
+      type        = "ssh"
+      user        = "root"
+      private_key = "${file("${var.ssh_private_key_file}")}"
+      timeout     = "5m"
+    }
+  }
+
   # Install required packages 
   provisioner "remote-exec" {
     inline = [
@@ -115,18 +171,33 @@ resource "azurerm_virtual_machine" "bluegate01" {
       "echo '${azurerm_network_interface.bluegate01_nic.private_ip_address}   bluegate01.example-intra.com' | cat - /etc/hosts | sudo tee /etc/hosts",
       "dnf clean packages",
       "echo 'nameserver 9.9.9.9' >> /etc/resolv.conf",
-      "dnf -y install freeipa-client libsss_sudo certbot python3-certbot mod_ssl git mysql",
+      "dnf -y install freeipa-client libsss_sudo certbot python3-certbot mod_ssl git mysql pcre-devel make nginx",
       "systemctl endable firewalld",
       "systemctl start firewalld",
       "firewall-cmd --add-service={freeipa-ldap,freeipa-ldaps,freeipa-replication,dns,ntp,ssh,http,https} --permanent",
       "firewall-cmd --add-port={80/tcp,443/tcp,389/tcp,636/tcp,88/tcp,88/udp,464/tcp,464/udp,53/tcp,53/udp,123/udp} --permanent",
       "firewall-cmd --reload",
       "ipa-client-install --mkhomedir --enable-dns-updates --principal=admin --password=CHANGEME1234 -U",
-#   To-DO
-#      "Re-compile nginx to include realip module",
-#      "mkdir /etc/nginx/snippets/", 
-#      "cp /repo/path/ngnix.conf /etc/nginx/",
-#      "cp /repo/path/tomcat-basic.nginx.conf /etc/nginx/conf.d/",
+      "mkdir /etc/nginx/snippets/", 
+      "chmod 750 /tmp/recompile_nginx.sh",
+      "cd /tmp/",
+      "./recompile_nginx.sh",
+      "cp /tmp/tomcat-basic.nginx.conf /etc/nginx/conf.d/tomcat-basic.conf.terraform",
+      "systemctl enable nginx",
+      "systemctl restart nginx",
+## -------------------------------SSL Setup (Not Automanted) Below-------------------------------------##
+## Ref: https://linuxize.com/post/secure-nginx-with-let-s-encrypt-on-centos-8/ ------------------##
+#      "cp /tmp/ssl.nginx.conf /etc/nginx/snippets/ssl.conf",
+#      "cp /tmp/letsencrypt.nginx.conf /etc/nginx/snippets/letsencrypt.conf",
+#      "wget -P /usr/local/bin https://dl.eff.org/certbot-auto",
+#      "chmod +x /usr/local/bin/certbot-auto",
+#      "openssl dhparam -out /etc/ssl/certs/dhparam.pem 2048",
+#      "mkdir -p /var/lib/letsencrypt/.well-known",
+#      "chgrp nginx /var/lib/letsencrypt",
+#      "chmod g+s /var/lib/letsencrypt",
+#      "systemctl reload nginx",
+#      "/usr/local/bin/certbot-auto certonly --agree-tos --email no-reply@example-intra.com --webroot -w /var/lib/letsencrypt/ -d example-intra.com",
+#      "systemctl enable nginx",
       
     ]
 
