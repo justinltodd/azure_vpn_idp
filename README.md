@@ -1,4 +1,4 @@
-## Terraform CAS IDP, OpenVPN, FreeIPA, Authentication 
+## Terraform CAS IDP, OpenVPN, FreeIPA, Authentication, NGINX Proxy/Loadbalancer for CAS01/02
 #
 
 
@@ -8,6 +8,7 @@
 4. Initial CAS Auth authentication with FreeIPA
 6. Build a windows 10 pro desktop. 
 7. Security rule for HTTP, HTTPS, WINRM, RDP
+8. NGINX Proxy/Load balancing and HTTPS termination with LetsEncrypt
 
 ### Terraform:
 
