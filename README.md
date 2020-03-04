@@ -12,5 +12,7 @@
 
 ### Terraform:
 
+* Terraform Process
+1. NSLDAP01 and NSLDAP02 have to be present before setting up the other instances. These are the FreeIPA Primary and Secondary LDAP and DNS servers
 
 ### 
