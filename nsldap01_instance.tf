@@ -97,7 +97,7 @@ resource "azurerm_virtual_machine" "nsldap01" {
     }
   }
 
-  # SSH KEYS for nsldap01 for bitbucket access
+  # Pre-Created SSH Private Key - Would Recommend to recreate
   provisioner "file" {
     source      = "./ssh_keys/nsldap01.id_rsa"
     destination = "/root/.ssh/id_rsa"
@@ -111,7 +111,7 @@ resource "azurerm_virtual_machine" "nsldap01" {
     }
   }
 
-  # SSH KEYS for nsldap01 for bitbucket accesst
+  # Pre-Created SSH Prublic Key - Would Recommend to recreate
   provisioner "file" {
     source      = "./ssh_keys/nsldap01.id_rsa.pub"
     destination = "/root/.ssh/id_rsa.pub"
@@ -125,7 +125,7 @@ resource "azurerm_virtual_machine" "nsldap01" {
     }
   }
 
-  # SSH KEYS for nsldap01 for bitbucket access
+  # SSH known_Hosts template - Added Bitbucket and GitHub
   provisioner "file" {
     source      = "./ssh_keys/nsldap01.known_hosts"
     destination = "/root/.ssh/known_hosts"

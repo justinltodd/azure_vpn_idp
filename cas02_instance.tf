@@ -97,7 +97,7 @@ resource "azurerm_virtual_machine" "cas02" {
     }
   }
 
-  # SSH KEYS for CAS Bitbucket
+  # Pre-Created SSH Private Key - Would Recommend to recreate
   provisioner "file" {
     source      = "./ssh_keys/cas02.id_rsa"
     destination = "/root/.ssh/id_rsa"
@@ -111,7 +111,7 @@ resource "azurerm_virtual_machine" "cas02" {
     }
   }
 
-  # SSH KEYS for CAS Bitbucket
+  # Pre-Created SSH Public Key - Would Recommend to recreate
   provisioner "file" {
     source      = "./ssh_keys/cas02.id_rsa.pub"
     destination = "/root/.ssh/id_rsa.pub"
@@ -125,7 +125,7 @@ resource "azurerm_virtual_machine" "cas02" {
     }
   }
 
-  # SSH KEYS for CAS Bitbucket
+  # SSH known_Hosts template - Added Bitbucket and GitHub
   provisioner "file" {
     source      = "./ssh_keys/cas02.known_hosts"
     destination = "/root/.ssh/known_hosts"
