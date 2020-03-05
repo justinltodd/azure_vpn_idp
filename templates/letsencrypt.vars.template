@@ -54,9 +54,9 @@ set_var EASYRSA_DN      "org"
 set_var EASYRSA_REQ_COUNTRY	    "US"
 set_var EASYRSA_REQ_PROVINCE	"New York"
 set_var EASYRSA_REQ_CITY	    "New York"
-set_var EASYRSA_REQ_ORG	        "Blue Prism Group"
-set_var EASYRSA_REQ_EMAIL	    "no-reply@blueprism.com"
-set_var EASYRSA_REQ_OU		    "Blue Prism DX Portal"
+set_var EASYRSA_REQ_ORG	        "Example Org"
+set_var EASYRSA_REQ_EMAIL	    "no-reply@example-intra.com"
+set_var EASYRSA_REQ_OU		    "Sandbox Portal"
 
 # Choose a size in bits for your keypairs. The recommended value is 2048.  Using
 # 2048-bit keys is considered more than sufficient for many years into the
